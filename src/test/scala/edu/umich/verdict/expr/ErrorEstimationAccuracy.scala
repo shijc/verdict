@@ -12,7 +12,7 @@ import edu.umich.verdict.transformation.Parser
 import scala.io.Source
 
 class ErrorEstimationAccuracy() {
-  var conf = new Configuration(new File(this.getClass.getClassLoader.getResource("expr/config.conf").getFile))
+  var conf = new Configuration(new File(this.getClass.getClassLoader.getResource("spark.conf").getFile))
   var connector: DbConnector = null
   var nSamples = 500
   var sampleSize = 0.01
