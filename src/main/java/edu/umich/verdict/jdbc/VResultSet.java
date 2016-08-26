@@ -106,42 +106,42 @@ public class VResultSet implements ResultSet {
     }
 
     public String getString(int columnIndex) throws SQLException {
-        if (columnIndex <= originalColumnCount)
+        if (!extraColumns.isExtra(columnIndex))
             return originalResultSet.getString(columnIndex);
         Double val = extraColumns.get(columnIndex);
         return val == null ? null : val + "";
     }
 
     public boolean getBoolean(int columnIndex) throws SQLException {
-        return columnIndex <= originalColumnCount ? originalResultSet.getBoolean(columnIndex) : extraColumns.getDouble(columnIndex) != 0;
+        return !extraColumns.isExtra(columnIndex) ? originalResultSet.getBoolean(columnIndex) : extraColumns.getDouble(columnIndex) != 0;
     }
 
     public byte getByte(int columnIndex) throws SQLException {
-        return columnIndex <= originalColumnCount ? originalResultSet.getByte(columnIndex) : (byte) extraColumns.getDouble(columnIndex);
+        return !extraColumns.isExtra(columnIndex) ? originalResultSet.getByte(columnIndex) : (byte) extraColumns.getDouble(columnIndex);
     }
 
     public short getShort(int columnIndex) throws SQLException {
-        return columnIndex <= originalColumnCount ? originalResultSet.getShort(columnIndex) : (short) extraColumns.getDouble(columnIndex);
+        return !extraColumns.isExtra(columnIndex) ? originalResultSet.getShort(columnIndex) : (short) extraColumns.getDouble(columnIndex);
     }
 
     public int getInt(int columnIndex) throws SQLException {
-        return columnIndex <= originalColumnCount ? originalResultSet.getInt(columnIndex) : (int) extraColumns.getDouble(columnIndex);
+        return !extraColumns.isExtra(columnIndex) ? originalResultSet.getInt(columnIndex) : (int) extraColumns.getDouble(columnIndex);
     }
 
     public long getLong(int columnIndex) throws SQLException {
-        return columnIndex <= originalColumnCount ? originalResultSet.getLong(columnIndex) : (long) extraColumns.getDouble(columnIndex);
+        return !extraColumns.isExtra(columnIndex) ? originalResultSet.getLong(columnIndex) : (long) extraColumns.getDouble(columnIndex);
     }
 
     public float getFloat(int columnIndex) throws SQLException {
-        return columnIndex <= originalColumnCount ? originalResultSet.getFloat(columnIndex) : (float) extraColumns.getDouble(columnIndex);
+        return !extraColumns.isExtra(columnIndex) ? originalResultSet.getFloat(columnIndex) : (float) extraColumns.getDouble(columnIndex);
     }
 
     public double getDouble(int columnIndex) throws SQLException {
-        return columnIndex <= originalColumnCount ? originalResultSet.getDouble(columnIndex) : extraColumns.getDouble(columnIndex);
+        return !extraColumns.isExtra(columnIndex) ? originalResultSet.getDouble(columnIndex) : extraColumns.getDouble(columnIndex);
     }
 
     public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
-        return columnIndex <= originalColumnCount ? originalResultSet.getBigDecimal(columnIndex) : BigDecimal.valueOf(extraColumns.getDouble(columnIndex));
+        return !extraColumns.isExtra(columnIndex) ? originalResultSet.getBigDecimal(columnIndex) : BigDecimal.valueOf(extraColumns.getDouble(columnIndex));
     }
 
     public byte[] getBytes(int columnIndex) throws SQLException {
@@ -237,7 +237,7 @@ public class VResultSet implements ResultSet {
     }
 
     public Object getObject(int columnIndex) throws SQLException {
-        return columnIndex <= originalColumnCount ? originalResultSet.getObject(columnIndex) : extraColumns.get(columnIndex);
+        return !extraColumns.isExtra(columnIndex) ? originalResultSet.getObject(columnIndex) : extraColumns.get(columnIndex);
     }
 
     public Object getObject(String columnLabel) throws SQLException {

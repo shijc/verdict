@@ -2,6 +2,7 @@ package edu.umich.verdict.processing;
 
 import edu.umich.verdict.Configuration;
 import edu.umich.verdict.InvalidConfigurationException;
+import edu.umich.verdict.InvalidSyntaxException;
 import edu.umich.verdict.connectors.DbConnector;
 import edu.umich.verdict.jdbc.VResultSet;
 import edu.umich.verdict.jdbc.VStatement;
@@ -24,7 +25,7 @@ public class SelectStatement extends ParsedStatement {
     }
 
     @Override
-    public ResultSet run(Configuration conf, DbConnector connector) throws SQLException, InvalidConfigurationException {
+    public ResultSet run(Configuration conf, DbConnector connector) throws SQLException, InvalidConfigurationException, InvalidSyntaxException {
         ResultSet rs;
         TransformedQuery transformed = QueryTransformer.forConfig(conf, connector.getMetaDataManager(), this).transform();
         String q = transformed.toString();

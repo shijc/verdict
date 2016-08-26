@@ -57,7 +57,7 @@ config_set_statement: SET key=config_key '=' value=config_value percent='%'?;
 
 config_get_statement: GET key=config_key;
 
-config_key: ID('.' ID)*;
+config_key: ID('.' (ID | TRIALS))*;
 
 config_value
     : ALL
@@ -81,9 +81,17 @@ SHOW: S H O W;
 UNIFORM: U N I F O R M;
 SAMPLES: S A M P L E S;
 GET: G E T;
+CONFIDENCE: C O N F I D E N C E;
+TRIALS: T R I A L S;
 
 
 DOUBLE_QUOTE_STRING: '"' (~'"' | '\\"')* '"';
+
+confidence_clause: CONFIDENCE confidence=(FLOAT | DECIMAL) percent='%'?;
+
+trials_clause: TRIALS trials=number;
+
+table_name_with_sample: table_name SAMPLE size=(FLOAT | DECIMAL) percent='%'? ;
 
 // VERDICT
 
@@ -201,7 +209,7 @@ insert_statement
 
 // https://msdn.microsoft.com/en-us/library/ms189499.aspx
 select_statement
-    : with_expression? query_expression order_by_clause? for_clause? option_clause? ';'?
+    : with_expression? query_expression order_by_clause? for_clause? option_clause? confidence_clause? trials_clause? ';'?
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms177523.aspx
@@ -684,7 +692,8 @@ table_source_item_joined
     ;
 
 table_source_item
-    : table_name_with_hint        as_table_alias?
+    : table_name_with_sample      as_table_alias?
+    | table_name_with_hint        as_table_alias?
     | rowset_function             as_table_alias?
     | derived_table              (as_table_alias column_alias_list?)?
     | change_table                as_table_alias
@@ -1134,7 +1143,7 @@ simple_id
 // https://msdn.microsoft.com/en-us/library/ms188074.aspx
 // Spaces are allowed for comparison operators.
 comparison_operator
-    : '=' | '>' | '<' | '<' '=' | '>' '=' | '<' '>' | '!' '=' | '!' '>' | '!' '<'
+    : '=' | '>' | '<' | '<=' | '>=' | '<>' | '!=' | '!>' | '!<' | '<' '=' | '>' '=' | '<' '>' | '!' '=' | '!' '>' | '!' '<'
     ;
 
 assignment_operator

@@ -22,82 +22,82 @@ public class VResultSetMetaData implements ResultSetMetaData {
 
     @Override
     public boolean isAutoIncrement(int column) throws SQLException {
-        return column<= originalColumnsCount? originalMetaData.isAutoIncrement(column): false;
+        return !extraColumns.isExtra(column)? originalMetaData.isAutoIncrement(column): false;
     }
 
     @Override
     public boolean isCaseSensitive(int column) throws SQLException {
-        return column<= originalColumnsCount? originalMetaData.isCaseSensitive(column): true;
+        return !extraColumns.isExtra(column)? originalMetaData.isCaseSensitive(column): true;
     }
 
     @Override
     public boolean isSearchable(int column) throws SQLException {
-        return column<= originalColumnsCount? originalMetaData.isSearchable(column): false;
+        return !extraColumns.isExtra(column)? originalMetaData.isSearchable(column): false;
     }
 
     @Override
     public boolean isCurrency(int column) throws SQLException {
-        return column<= originalColumnsCount? originalMetaData.isCurrency(column): false;
+        return !extraColumns.isExtra(column)? originalMetaData.isCurrency(column): false;
     }
 
     @Override
     public int isNullable(int column) throws SQLException {
-        return column<= originalColumnsCount? originalMetaData.isNullable(column): columnNoNulls;
+        return !extraColumns.isExtra(column)? originalMetaData.isNullable(column): columnNoNulls;
     }
 
     @Override
     public boolean isSigned(int column) throws SQLException {
-        return column<= originalColumnsCount? originalMetaData.isSearchable(column): false;
+        return !extraColumns.isExtra(column)? originalMetaData.isSearchable(column): false;
     }
 
     @Override
     public int getColumnDisplaySize(int column) throws SQLException {
-        return column<= originalColumnsCount? originalMetaData.getColumnDisplaySize(column): extraColumns.getDisplaySize(column);
+        return !extraColumns.isExtra(column)? originalMetaData.getColumnDisplaySize(column): extraColumns.getDisplaySize(column);
     }
 
     @Override
     public String getColumnLabel(int column) throws SQLException {
-        return column<= originalColumnsCount? originalMetaData.getColumnLabel(column): extraColumns.getLabel(column);
+        return !extraColumns.isExtra(column)? originalMetaData.getColumnLabel(column): extraColumns.getLabel(column);
     }
 
     @Override
     public String getColumnName(int column) throws SQLException {
-        return column<= originalColumnsCount? originalMetaData.getColumnName(column): extraColumns.getLabel(column);
+        return !extraColumns.isExtra(column)? originalMetaData.getColumnName(column): extraColumns.getLabel(column);
     }
 
     @Override
     public String getSchemaName(int column) throws SQLException {
-        return column<= originalColumnsCount? originalMetaData.getSchemaName(column): "";
+        return !extraColumns.isExtra(column)? originalMetaData.getSchemaName(column): "";
     }
 
     @Override
     public int getPrecision(int column) throws SQLException {
-        return column<= originalColumnsCount? originalMetaData.getPrecision(column): extraColumns.getPrecision(column);
+        return !extraColumns.isExtra(column)? originalMetaData.getPrecision(column): extraColumns.getPrecision(column);
     }
 
     @Override
     public int getScale(int column) throws SQLException {
-        return column<= originalColumnsCount? originalMetaData.getScale(column): extraColumns.getScale(column);
+        return !extraColumns.isExtra(column)? originalMetaData.getScale(column): extraColumns.getScale(column);
     }
 
     @Override
     public String getTableName(int column) throws SQLException {
-        return column<= originalColumnsCount? originalMetaData.getTableName(column): "";
+        return !extraColumns.isExtra(column)? originalMetaData.getTableName(column): "";
     }
 
     @Override
     public String getCatalogName(int column) throws SQLException {
-        return column<= originalColumnsCount? originalMetaData.getCatalogName(column): "";
+        return !extraColumns.isExtra(column)? originalMetaData.getCatalogName(column): "";
     }
 
     @Override
     public int getColumnType(int column) throws SQLException {
-        return column<= originalColumnsCount? originalMetaData.getColumnType(column): extraColumns.getType(column);
+        return !extraColumns.isExtra(column)? originalMetaData.getColumnType(column): extraColumns.getType(column);
     }
 
     @Override
     public String getColumnTypeName(int column) throws SQLException {
-        return column<= originalColumnsCount? originalMetaData.getColumnTypeName(column): extraColumns.getTypeName(column);
+        return !extraColumns.isExtra(column)? originalMetaData.getColumnTypeName(column): extraColumns.getTypeName(column);
     }
 
     @Override
@@ -117,7 +117,7 @@ public class VResultSetMetaData implements ResultSetMetaData {
 
     @Override
     public String getColumnClassName(int column) throws SQLException {
-        return column<= originalColumnsCount? originalMetaData.getColumnClassName(column): extraColumns.getClassName(column);
+        return !extraColumns.isExtra(column)? originalMetaData.getColumnClassName(column): extraColumns.getClassName(column);
     }
 
     @Override

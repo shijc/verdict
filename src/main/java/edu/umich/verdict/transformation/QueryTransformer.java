@@ -1,12 +1,14 @@
 package edu.umich.verdict.transformation;
 
 import edu.umich.verdict.Configuration;
+import edu.umich.verdict.InvalidSyntaxException;
 import edu.umich.verdict.connectors.MetaDataManager;
 import edu.umich.verdict.models.Sample;
 import edu.umich.verdict.models.StratifiedSample;
 import edu.umich.verdict.parser.TsqlBaseVisitor;
 import edu.umich.verdict.parser.TsqlParser;
 import edu.umich.verdict.processing.SelectStatement;
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.TokenStreamRewriter;
 
 import java.sql.SQLException;
@@ -16,6 +18,7 @@ import java.util.List;
 
 public abstract class QueryTransformer {
     protected static final List<String> supportedAggregates = Arrays.asList("avg sum count".split(" "));
+    protected static final List<String> supportedExtraColumns = Arrays.asList("absolute_error relative_error lower_bound upper_bound".split(" "));
     protected final MetaDataManager metaDataManager;
     protected final TokenStreamRewriter rewriter;
     private Sample sample = null;
@@ -26,15 +29,17 @@ public abstract class QueryTransformer {
     protected final String sampleType;
     protected final double preferredSample;
     protected final boolean showErrors;
+    protected final boolean autoMode;
 
     protected TsqlParser.Select_listContext selectList = null;
     ArrayList<SelectListItem> selectItems = new ArrayList<>();
     //    ArrayList<SelectListItem> groupBys = new ArrayList<>();
     protected String sampleAlias;
+    private TsqlParser.Confidence_clauseContext confidenceClause;
+    private TsqlParser.Trials_clauseContext trialsClause;
+    private TsqlParser.Table_name_with_sampleContext sampleSizeClause;
 
     public static QueryTransformer forConfig(Configuration conf, MetaDataManager metaDataManager, SelectStatement q) {
-        if (!conf.getBoolean("approximation"))
-            return new IdenticalTransformer(conf, metaDataManager, q);
         switch (conf.get("bootstrap.method")) {
             case "uda":
                 return new UdaTransformer(conf, metaDataManager, q);
@@ -51,9 +56,10 @@ public abstract class QueryTransformer {
         this.q = q;
         this.metaDataManager = metaDataManager;
         rewriter = q.getRewriter();
-        confidence = conf.getPercent("confidence");
-        bootstrapTrials = conf.getInt("bootstrap.trials");
-        preferredSample = conf.getPercent("sample_size");
+        autoMode = conf.get("approximation").toLowerCase().equals("auto");
+        confidence = this.getConfidence(conf);
+        bootstrapTrials = this.getTrials(conf);
+        preferredSample = this.getSampleSize(conf);
         showErrors = !conf.get("error_columns").isEmpty();
         sampleType = conf.get("sample_type").toLowerCase();
         transformed = new TransformedQuery(q, bootstrapTrials, confidence, conf.get("bootstrap.method").toLowerCase());
@@ -61,7 +67,11 @@ public abstract class QueryTransformer {
             sample = metaDataManager.getSampleByName(conf.get("fixed_sample"));
     }
 
-    public TransformedQuery transform() throws SQLException {
+    public TransformedQuery transform() throws SQLException, InvalidSyntaxException {
+        if (!autoMode && sampleSizeClause == null && confidenceClause == null && trialsClause == null) {
+            System.out.println("Passing query. No inline indications found.");
+            return transformed;
+        }
         if (!findAggregates()) {
             System.out.println("No supported aggregate function found.");
             return transformed;
@@ -78,7 +88,7 @@ public abstract class QueryTransformer {
         return transformed;
     }
 
-    protected boolean findAggregates() {
+    protected boolean findAggregates() throws InvalidSyntaxException {
         findSelectList();
         if (selectList == null)
             return false;
@@ -93,6 +103,18 @@ public abstract class QueryTransformer {
             selectItems.add(itemInfo);
             if (itemInfo.isSupportedAggregate())
                 transformed.addAggregate(itemInfo.getAggregateType(), itemInfo.getInnerExpression(), itemInfo.getIndex());
+        }
+        outer:
+        for (SelectListItem item : selectItems) {
+            if (item.isExtraColumn()) {
+                for (SelectListItem agg : selectItems) {
+                    if (agg.isSupportedAggregate() && agg.getOriginalAlias().equals(item.getAggtegateRef())) {
+                        transformed.addExtraColumn(item.getExtraColumnType(), agg.getIndex(), item.getIndex(), item.getOriginalAlias());
+                        continue outer;
+                    }
+                }
+                throw new InvalidSyntaxException("Reference '" + item.getAggtegateRef() + "' not found.");
+            }
         }
         return !transformed.getAggregates().isEmpty();
     }
@@ -154,11 +176,17 @@ public abstract class QueryTransformer {
                     replaceStratifiedAggregate(item);
                 else
                     replaceUniformAggregate(item);
+            }else if(item.isExtraColumn()){
+                replaceExtraColumn(item);
             }
     }
 
     protected boolean stratifiedSample() {
         return transformed.getSample() instanceof StratifiedSample;
+    }
+
+    protected void replaceExtraColumn(SelectListItem item) {
+        rewriter.replace(item.ctx.start, item.ctx.stop, "0");
     }
 
     protected void replaceUniformAggregate(SelectListItem item) {
@@ -262,6 +290,53 @@ public abstract class QueryTransformer {
 
     protected abstract String getStratifiedTrialExpression(SelectListItem item, int trial);
 
+    public double getConfidence(Configuration conf) {
+        q.getParseTree().accept(new TsqlBaseVisitor<Void>() {
+            public Void visitConfidence_clause(TsqlParser.Confidence_clauseContext cls) {
+                if (confidenceClause != null)
+                    // already found
+                    return null;
+                confidenceClause = cls;
+                return null;
+            }
+        });
+        if (confidenceClause == null)
+            return conf.getPercent("confidence");
+        rewriter.delete(confidenceClause.start, confidenceClause.stop);
+        return confidenceClause.percent != null ? Float.parseFloat(confidenceClause.confidence.getText()) / 100 : Float.parseFloat(confidenceClause.confidence.getText());
+    }
+
+    public int getTrials(Configuration conf) {
+        q.getParseTree().accept(new TsqlBaseVisitor<Void>() {
+            public Void visitTrials_clause(TsqlParser.Trials_clauseContext cls) {
+                if (trialsClause != null)
+                    // already found
+                    return null;
+                trialsClause = cls;
+                return null;
+            }
+        });
+        if (trialsClause == null)
+            return conf.getInt("bootstrap.trials");
+        rewriter.delete(trialsClause.start, trialsClause.stop);
+        return Integer.parseInt(trialsClause.trials.getText());
+    }
+
+    public double getSampleSize(Configuration conf) {
+        q.getParseTree().accept(new TsqlBaseVisitor<Void>() {
+            public Void visitTable_name_with_sample(TsqlParser.Table_name_with_sampleContext cls) {
+                if (sampleSizeClause != null)
+                    // already found
+                    return null;
+                sampleSizeClause = cls;
+                return null;
+            }
+        });
+        if (sampleSizeClause == null)
+            return conf.getPercent("sample_size");
+        return sampleSizeClause.percent != null ? Double.parseDouble(sampleSizeClause.size.getText()) / 100 : Double.parseDouble(sampleSizeClause.size.getText());
+    }
+
 //    private void joinWithWeightTable() {
 //        StratifiedSample sample = (StratifiedSample) transformed.getSample();
 //        StringBuilder buf1 = new StringBuilder("select ");
@@ -341,6 +416,9 @@ public abstract class QueryTransformer {
         private String alias = "";
         private boolean isSupportedAggregate = false;
         private TsqlParser.Select_list_elemContext ctx;
+        private String aggregateColumnRef;
+        private boolean isExtraColumn = false;
+        private TransformedQuery.ExtraColumnType extraColumnType = null;
 
         public SelectListItem(int index, TsqlParser.Select_list_elemContext ctx) throws Exception {
             this.ctx = ctx;
@@ -374,6 +452,16 @@ public abstract class QueryTransformer {
                         aggregateType = TransformedQuery.AggregateType.valueOf(aggr.toUpperCase());
                     } else
                         aggregateType = TransformedQuery.AggregateType.OTHER;
+                } else if (((TsqlParser.Function_call_expressionContext) exprCtx).function_call().scalar_function_name() != null &&
+                        ((TsqlParser.Function_call_expressionContext) exprCtx).function_call().scalar_function_name().func_proc_name() != null) {
+                    String functionName = ((TsqlParser.Function_call_expressionContext) exprCtx).function_call().scalar_function_name().func_proc_name().getText();
+                    if (supportedExtraColumns.contains(functionName.toLowerCase())) {
+                        if (((TsqlParser.Function_call_expressionContext) exprCtx).function_call().expression_list() == null)
+                            throw new Exception("Invalid error column definition.");
+                        aggregateColumnRef = ((TsqlParser.Function_call_expressionContext) exprCtx).function_call().expression_list().getText();
+                        isExtraColumn = true;
+                        extraColumnType = TransformedQuery.ExtraColumnType.valueOf(functionName.toUpperCase());
+                    }
                 }
             }
         }
@@ -429,16 +517,30 @@ public abstract class QueryTransformer {
         public boolean isForExpression(String expr) {
             return this.expr.equals(expr) || this.getOriginalAlias().equals(expr);
         }
+
+        public boolean isExtraColumn() {
+            return isExtraColumn;
+        }
+
+        public TransformedQuery.ExtraColumnType getExtraColumnType() {
+            return extraColumnType;
+        }
+
+        public String getAggtegateRef() {
+            return aggregateColumnRef;
+        }
     }
 
     private class TableReplacer extends TsqlBaseVisitor<Void> {
         private TsqlParser.Table_source_itemContext sourceTableCtx;
 
         public Void visitTable_source_item(TsqlParser.Table_source_itemContext ctx) {
-            if (ctx.table_name_with_hint() == null)
+            if (ctx.table_name_with_hint() == null && ctx.table_name_with_sample() == null)
                 // table_source_item is a sub-query or something else (not a table reference)
                 return null;
-            Sample sample = getSample(ctx.table_name_with_hint().table_name().getText());
+            Sample sample = (ctx.table_name_with_sample() != null) ?
+                    getSample(ctx.table_name_with_sample().table_name().getText()) :
+                    getSample(ctx.table_name_with_hint().table_name().getText());
             if (sample != null) {
                 if (transformed.getSample() != null && transformed.getSample().getTableSize() >= sample.getTableSize())
                     // already found a sample for a bigger table
@@ -452,13 +554,16 @@ public abstract class QueryTransformer {
         public boolean replace() {
             Sample sample = transformed.getSample();
             if (sample != null) {
-                TsqlParser.Table_nameContext nameCtx = sourceTableCtx.table_name_with_hint().table_name();
+                TsqlParser.Table_nameContext nameCtx = (sourceTableCtx.table_name_with_sample() != null) ?
+                        sourceTableCtx.table_name_with_sample().table_name() : sourceTableCtx.table_name_with_hint().table_name();
+                ParserRuleContext tableContext = (sourceTableCtx.table_name_with_sample() != null) ?
+                        sourceTableCtx.table_name_with_sample() : sourceTableCtx.table_name_with_hint().table_name();
                 if (sourceTableCtx.as_table_alias() == null) {
                     // if there is no alias, we add an alias equal to the original table name to eliminate side-effects of this change in other parts of the query
-                    rewriter.replace(nameCtx.start, nameCtx.stop, metaDataManager.getSampleFullName(sample) + " AS " + nameCtx.table.getText());
+                    rewriter.replace(tableContext.start, tableContext.stop, metaDataManager.getSampleFullName(sample) + " AS " + nameCtx.table.getText());
                     sampleAlias = nameCtx.table.getText();
                 } else {
-                    rewriter.replace(nameCtx.start, nameCtx.stop, metaDataManager.getSampleFullName(sample));
+                    rewriter.replace(tableContext.start, tableContext.stop, metaDataManager.getSampleFullName(sample));
                     sampleAlias = sourceTableCtx.as_table_alias().table_alias().getText();
                 }
                 return true;

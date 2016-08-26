@@ -15,6 +15,7 @@ public class TransformedQuery {
     private final TokenStreamRewriter rewriter;
     private Sample sample = null;
     private ArrayList<AggregateInfo> aggregates = new ArrayList<>();
+    private ArrayList<ExtraColumnInfo> extraColumns = new ArrayList<>();
     private int originalCols;
     private int bootstrapRepeats;
     private double confidence;
@@ -52,6 +53,12 @@ public class TransformedQuery {
         return aggr;
     }
 
+    public ExtraColumnInfo addExtraColumn(ExtraColumnType type, int aggregateColumn, int column, String alias) {
+        ExtraColumnInfo col = new ExtraColumnInfo(type, aggregateColumn, column, alias);
+        extraColumns.add(col);
+        return col;
+    }
+
     public int getOriginalColumnsCount() {
         return originalCols;
     }
@@ -83,6 +90,10 @@ public class TransformedQuery {
         return ctx.start.getInputStream().getText(interval);
     }
 
+    public ArrayList<ExtraColumnInfo> getExtraColumns() {
+        return extraColumns;
+    }
+
 
     public class AggregateInfo {
         private AggregateType type;
@@ -108,11 +119,50 @@ public class TransformedQuery {
         }
     }
 
+    public class ExtraColumnInfo {
+        private String alias;
+        private ExtraColumnType type;
+        private int aggregateColumn;
+        private int column;
+
+        public ExtraColumnInfo(ExtraColumnType type, int aggregateColumn, int column, String alias) {
+            this.type = type;
+            this.aggregateColumn = aggregateColumn;
+            this.column = column;
+            this.alias = alias;
+        }
+
+        public ExtraColumnType getType() {
+            return type;
+        }
+
+        public int getAggregateColumn() {
+            return aggregateColumn;
+        }
+
+        public int getColumn() {
+            return column;
+        }
+
+        public String getAlias() {
+            return alias;
+        }
+    }
+
     public enum AggregateType {
         AVG,
         SUM,
         COUNT,
         OTHER,
+        NONE
+    }
+
+    public enum ExtraColumnType {
+        ABSOLUTE_ERROR,
+        RELATIVE_ERROR,
+        LOWER_BOUND,
+        UPPER_BOUND,
+        VARIANCE,
         NONE
     }
 
