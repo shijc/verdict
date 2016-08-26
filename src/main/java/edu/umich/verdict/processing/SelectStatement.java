@@ -68,8 +68,8 @@ public class SelectStatement extends ParsedStatement {
         ResultSet rs = connector.executeQuery("select 1");
         TransformedQuery transformed = QueryTransformer.forConfig(conf, connector.getMetaDataManager(), this).transform();
 
-        String tablename = "expr_performance.lineitem_1";
-        String q = getPerformanceStatement(tablename);
+        String tablename = "`" + transformed.getSample().getName() + "`";
+        String q = transformed.toString();
         if (transformed.isChanged()) {
             info("Query:");
             info(q);

@@ -190,7 +190,7 @@ class ErrorEstimationAccuracy() {
     createDirs()
 
     println("Running Exacts ...")
-    runExacts()
+    //runExacts()
 
     //    println("Creating Samples ...")
     //    createSamples()
@@ -198,22 +198,22 @@ class ErrorEstimationAccuracy() {
     println("Running Approximates ...")
     runApproximates()
 
-    loadExacts()
-    loadApproximates()
+    //loadExacts()
+    //loadApproximates()
 
-    println("Estimated Answer Error:")
-    printEstimatedErrors()
+    //println("Estimated Answer Error:")
+    //printEstimatedErrors()
 
-    println("Bias:")
-    printBias()
+    //println("Bias:")
+    //printBias()
 
-    println("Variance Error:")
-    printVarianceError()
+    //println("Variance Error:")
+    //printVarianceError()
 
-    Seq("diff", "abs-width", "width").foreach(method => {
-      println(s"Confidence Interval Error ($method):")
-      printConfidenceIntervalError(method)
-    })
+    //Seq("diff", "abs-width", "width").foreach(method => {
+    //  println(s"Confidence Interval Error ($method):")
+    //  printConfidenceIntervalError(method)
+    //})
 
     //    println("Removing Samples ...")
     //    removeSamples()
