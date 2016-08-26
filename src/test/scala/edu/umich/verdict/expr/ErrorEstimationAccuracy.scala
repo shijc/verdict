@@ -51,7 +51,7 @@ class ErrorEstimationAccuracy() {
   }
 
   def runExacts() = {
-    execute("set approximation = off")
+    execute("set approximation = inline")
     queries.zipWithIndex.foreach(q => {
       val pw = new PrintWriter(new File(s"error-test/$dir/${q._2}/exact"))
       ResultWriter.writeResultSet(pw, execute(q._1))
@@ -61,7 +61,7 @@ class ErrorEstimationAccuracy() {
 
   def runApproximates() = {
     execute(s"set sample_size = $sampleSize%")
-    execute("set approximation = on")
+    execute("set approximation = \"auto\"")
     queries.zipWithIndex.foreach(q => {
       val pw = new PrintWriter(new File(s"error-test/$dir/${q._2}/approx"))
       for (i <- 1 to nSamples) {
