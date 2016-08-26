@@ -17,12 +17,12 @@ import java.util.stream.Collectors;
  * used for query processing to interact with the underlying DBMS.
  */
 public abstract class MetaDataManager {
-    public static final String METADATA_DATABASE = "expr";
+    public static final String METADATA_DATABASE = "expr_performance";
     public static final int MIN_ROW_FOR_STRATA = 100;
     protected ArrayList<Sample> samples = new ArrayList<>();
     protected DbConnector connector;
     protected DatabaseMetaData dbmsMetaData;
-    private String currentSchema = "default";
+    private String currentSchema = "expr_performance";
 
     public MetaDataManager(DbConnector connector) throws SQLException {
         this.connector = connector;

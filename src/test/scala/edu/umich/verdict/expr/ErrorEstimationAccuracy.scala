@@ -29,7 +29,26 @@ class ErrorEstimationAccuracy() {
     Parser.parse(q).run(conf, connector)
   }
 
-  def sampleName(i: Int) = s"error_test${if (conf.get("sample_type").equals("stratified")) "_stra" else ""}_${table}_s$i"
+  //def sampleName(i: Int) = s"error_test${if (conf.get("sample_type").equals("stratified")) "_stra" else ""}_${table}_s$i"
+  def sampleName(i: Int) : String = {
+    if (i == 1) {
+      return s"s1_01"
+    } else if (i == 2) {
+      return s"s1_1"
+    } else if (i == 3) {
+      return s"s1_2"
+    } else if (i == 4) {
+      return s"s1_5"
+    } else if (i == 5) {
+      return s"s10_01"
+    } else if (i == 6) {
+      return s"s10_1"
+    } else if (i == 7) {
+      return s"s10_2"
+    } else {
+      return s"s10_5"
+    }
+  }
 
   def createSamples(): Unit = {
     for (i <- 1 to nSamples) {
