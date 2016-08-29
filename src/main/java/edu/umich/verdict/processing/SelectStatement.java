@@ -68,23 +68,25 @@ public class SelectStatement extends ParsedStatement {
         ResultSet rs = connector.executeQuery("select 1");
         TransformedQuery transformed = QueryTransformer.forConfig(conf, connector.getMetaDataManager(), this).transform();
 
-        String tablename = "`" + transformed.getSample().getName() + "`";
+        String tablename = "expr_performance.s_" + transformed.getSample().getName() + "";
         String q = transformed.toString();
+        //String tablename = "default.lineitem40";
+        //String q = getPerformanceStatement(tablename);
         if (transformed.isChanged()) {
-            info("Query:");
-            info(q);
-            info("\n");
-            System.out.println("Method: " + transformed.getMethod() + "Table: " + transformed.getSample());
-            rs = connector.executeQuery("uncache table " + tablename);
+            
+            System.out.println("Method: " + transformed.getMethod() + "Table: " + tablename);
+            rs = connector.executeQuery("uncache table `" + tablename + "`");
 
-            for (int i = 0; i < 11; i++) {
+            for (int i = 0; i < 6; i++) {
                 //executeCommand("/home/shijc/code/emptyCache/restartDB");
-
+                
                 long startTime = System.nanoTime();
                 rs = connector.executeQuery(q);
                 long estimatedTime = System.nanoTime() - startTime;
                 System.out.println(estimatedTime / 1000000000.0);
-                rs = connector.executeQuery("cache table " + tablename);
+                //spark.cacheTable(tablename);
+                //rs = connector.executeQuery("uncache table `" + tablename + "`");
+                rs = connector.executeQuery("cache table `" + tablename + "`");
             }
         } else {
             info("Running the original query...");
